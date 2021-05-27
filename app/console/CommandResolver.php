@@ -13,7 +13,7 @@ use app\console\exception\CommandNotFoundException;
 class CommandResolver
 {
     /**
-     * @var array $commands Список зарегистрированных команд
+     * @var Command[] $commands Список зарегистрированных команд
      */
     private array $commands;
 
@@ -26,7 +26,9 @@ class CommandResolver
      */
     public function register(string $name, callable $callback, string $description = ''): static
     {
-        return $this->addCommand($name, $callback, $description);
+        $this->commands[$name] = new Command($name, $callback, $description);
+
+        return $this;
     }
 
     /**
@@ -39,22 +41,6 @@ class CommandResolver
         $context = $this->parse($argv);
         $callback = $this->findCommand($context);
         $this->executeCommand($callback, $context);
-    }
-
-    /**
-     * @param string $name
-     * @param callable $callback
-     * @param string $description
-     * @return static
-     */
-    private function addCommand(string $name, callable $callback, string $description = ''): static
-    {
-        $this->commands[$name] = [
-            'method' => $callback,
-            'description' => $description,
-        ];
-
-        return $this;
     }
 
     /**
@@ -85,7 +71,7 @@ class CommandResolver
         }
 
         if (isset($this->commands[$commandName])) {
-            return $this->commands[$commandName]['method'];
+            return $this->commands[$commandName]->getMethod();
         }
 
         throw new CommandNotFoundException();
@@ -106,8 +92,8 @@ class CommandResolver
      */
     private function listCommand()
     {
-        foreach ($this->commands as $name => $command) {
-            Console::stdout("$name: {$command['description']} \n");
+        foreach ($this->commands as $command) {
+            Console::stdout("{$command->getName()}: {$command->getDescription()} \n");
         }
     }
 
@@ -122,6 +108,6 @@ class CommandResolver
             throw new CommandNotFoundException();
         }
 
-        Console::stdout($this->commands[$context->getCommand()]['description'] . "\n");
+        Console::stdout($this->commands[$context->getCommand()]->getDescription() . "\n");
     }
 }
